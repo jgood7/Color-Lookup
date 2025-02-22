@@ -1,60 +1,72 @@
 import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageTk
+import numpy as np
 
-# Create the main window
+# Global variables
+img = None  # Store the image for pixel access
+tk_img = None  # Store the Tkinter image
+
+def load_colors():
+    colors={}
+    with open('color_names.csv','r') as file:
+        for line in file:
+            colors[tuple(int(line.split(',')[1][1:-1][i:i + 2], 16) for i in (0, 2, 4))]=line.split(',')[0]
+    return colors
+
+def load_image():
+    global img, tk_img  # Ensure global access
+    file_path = filedialog.askopenfilename(title="Select an image",
+                                           filetypes=[("Image files", "*.png;*.jpg;*.jpeg"), ("All files", "*.*")])
+    if not file_path:
+        return  # No file selected
+    img = Image.open(file_path).convert("RGB")  # Store image (RGB mode)
+    tk_img = ImageTk.PhotoImage(img)  # Convert for Tkinter
+    canvas.create_image(0, 0, anchor=tk.NW, image=tk_img)  # Draw image
+    canvas.image = tk_img  # Keep reference to prevent garbage collection
+
+def closest_point_numpy(target):
+    global colors
+    points = np.array(list(colors.keys()))
+    distances = np.sum((points - np.array(target))**2, axis=1)
+    closest = tuple(points[np.argmin(distances)])
+    ints = [value.item() for value in closest]
+    return colors.get(tuple(ints)), tuple(ints)
+
+def get_pixel_color(event):
+    global img  # Access stored image
+    if img is None:
+        return  # No image loaded
+
+    x, y = event.x, event.y
+    try:
+        r, g, b = img.getpixel((x, y))  # Get RGB values
+        hex_color = f"#{r:02x}{g:02x}{b:02x}"  # Convert to hex
+        print(f"RGB({r}, {g}, {b}), HEX {hex_color}")
+        match = closest_point_numpy([r, g, b])
+        print(f"Closest match in colors is: {match[0]} / RGB({match[1]}, HEX #{match[1][0]:02x}{match[1][1]:02x}{match[1][2]:02x}")
+
+
+    except IndexError:
+        print("Clicked outside the image bounds.")
+
+def find_closest_color(color):
+    global colors
+    if colors.get((color[0],color[1],color[2])) is not None:
+        return colors.get((color[0],color[1],color[2]))
+    return "No perfect match"
+
 root = tk.Tk()
-img=''
-root.title("GUI")
-image_id=''
-# Create a label widget
-label = tk.Label(root, text="Hello!")
-label.pack()
-canvas = tk.Canvas(root,width=0,height=0)
+root.title("Image Pixel Reader")
+canvas = tk.Canvas(root, width=700, height=700)
 canvas.pack()
-
-def resize_image(img,max_width,max_height):
-    ratio = min(max_width / img.width, max_height / img.height)
-    if img.width>img.height:
-        width=max_width
-        height=int(ratio*width)
-    else:
-        height=max_height
-        width=int(ratio*height)
-
-    return img.resize((width,height),Image.Resampling.LANCZOS)
-
-# Create a button widget
-def on_button_click():
-    global canvas, image_id
-    #Get image from dir
-    img = filedialog.askopenfilename(title="Select an image", filetypes=(("Image files", ["*.png"]), ("All files", "*.*")))
-    if img:
-        img = Image.open(img)
-        img = resize_image(img,700,700)
-        img = ImageTk.PhotoImage(img)
-        if image_id:
-            canvas.itemconfig(image_id, image=img)  # Update image
-            canvas.config(width=min(img.width(),700),height=min(img.height(),700))
-
-
-        else:
-            canvas_image_id = canvas.create_image(0, 0, anchor=tk.NW, image=img)
-            canvas.config(width=min(img.width(),700),height=min(img.height(),700))
-        canvas.image = img
-        canvas.pack()
-
-button = tk.Button(root, text="Choose Image", command=on_button_click)
+canvas.bind("<Button-1>", get_pixel_color)  # Bind click event to canvas
+button = tk.Button(root, text="Choose Image", command=load_image)
 button.pack()
-
-# Run the GUI application
-
-
-
+colors = load_colors()
 
 def main():
     root.mainloop()
-    return 0
 
 if __name__=='__main__':
     main()
