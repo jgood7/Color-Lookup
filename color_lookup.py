@@ -42,11 +42,9 @@ def get_pixel_color(event):
     x, y = event.x, event.y
     try:
         r, g, b = img.getpixel((x, y))  # Get RGB values
-        hex_color = f"#{r:02x}{g:02x}{b:02x}"  # Convert to hex
-        print(f"RGB({r}, {g}, {b}), HEX {hex_color}")
         match = closest_point_numpy([r, g, b])
-        print(f"Closest match in colors is: {match[0]} / RGB({match[1]}, HEX #{match[1][0]:02x}{match[1][1]:02x}{match[1][2]:02x}")
-
+        result.config(text = f"Closest match in colors is: {match[0]} / RGB({match[1]} / HEX #{match[1][0]:02x}{match[1][1]:02x}{match[1][2]:02x}")
+        result.pack()
 
     except IndexError:
         print("Clicked outside the image bounds.")
@@ -75,6 +73,7 @@ canvas.pack()
 canvas.bind("<Button-1>", get_pixel_color)  # Bind click event to canvas
 button = tk.Button(root, text="Choose Image", command=load_image)
 button.pack()
+result = tk.Label(root)
 colors = load_colors()
 
 def main():
