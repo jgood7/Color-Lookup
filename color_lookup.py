@@ -21,6 +21,7 @@ def load_image():
     if not file_path:
         return  # No file selected
     img = Image.open(file_path).convert("RGB")  # Store image (RGB mode)
+    img = resize(700)
     tk_img = ImageTk.PhotoImage(img)  # Convert for Tkinter
     canvas.create_image(0, 0, anchor=tk.NW, image=tk_img)  # Draw image
     canvas.image = tk_img  # Keep reference to prevent garbage collection
@@ -55,6 +56,17 @@ def find_closest_color(color):
     if colors.get((color[0],color[1],color[2])) is not None:
         return colors.get((color[0],color[1],color[2]))
     return "No perfect match"
+
+def resize(max_size):
+    global img
+    ratio = min(img.width,img.height)/max(img.width,img.height)
+    if img.width>img.height:
+        img = img.resize([max_size,int(max_size*ratio)])
+    elif img.height>img.width:
+        img = img.resize([int(max_size * ratio),max_size])
+    else:
+        img = img.resize(max_size,max_size)
+    return img
 
 root = tk.Tk()
 root.title("Image Pixel Reader")
